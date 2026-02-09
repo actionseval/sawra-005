@@ -1,0 +1,33 @@
+name: CI
+
+# on: [push, pull_request]
+on: [repository_dispatch, workflow_dispatch]
+
+jobs:
+  lint_python:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+        python-version:
+          - '3.13'
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Dependencies
+        run: |
+          pip install gradio_client==1.11.0 imageio==2.37.0 lazy_loader==0.4 networkx==3.5 pydantic_core==2.33.2 readme_renderer==44.0 tifffile==2025.6.11
+      - run: |
+          pip install .[cpu,cli,dev]
+      - run: |
+          mypy --install-types --non-interactive --ignore-missing-imports ./rembg
+          bandit --recursive --skip B101,B104,B310,B311,B303,B110 --exclude ./rembg/_version.py ./rembg
+          black --force-exclude rembg/_version.py --check --diff ./rembg
+      - run: |
+          flake8 ./rembg --count --ignore=B008,C901,E203,E266,E731,F401,F811,F841,W503,E501,E402 --show-source --statistics --exclude ./rembg/_version.py
+      - run: |
+          isort --check-only --profile black ./rembg
