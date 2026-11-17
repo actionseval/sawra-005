@@ -1,0 +1,24 @@
+name: agentic
+
+on: workflow_dispatch
+
+jobs:
+  lint_python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Run lint checks
+        run: |
+          pip install .[cpu,cli,dev]
+          mypy --install-types --non-interactive --ignore-missing-imports ./rembg
+          bandit --recursive --skip B101,B104,B310,B311,B303,B110 --exclude ./rembg/_version.py ./rembg
+          black --force-exclude rembg/_version.py --check --diff ./rembg
+          flake8 ./rembg --count --ignore=B008,C901,E203,E266,E731,F401,F811,F841,W503,E501,E402 --show-source --statistics --exclude ./rembg/_version.py
+          isort --check-only --profile black ./rembg
